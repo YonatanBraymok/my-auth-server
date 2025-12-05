@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    /* Language and Environment */
+    "target": "es2016",                                  /* לאיזו גרסת JS לקמפל */
+    "module": "commonjs",                                /* השיטה של Node.js לניהול מודולים */
+    "moduleResolution": "node",                          /* איך למצוא קבצים */
+    "esModuleInterop": true,                             /* מאפשר לייבא ספריות JS רגילות */
+    "forceConsistentCasingInFileNames": true,            /* מונע באגים של אותיות גדולות/קטנות */
+    "strict": true,                                      /* בדיקות קפדניות של TS - מומלץ ללמידה */
+    "skipLibCheck": true,                                /* מאיץ את הקמפול */
+    "outDir": "./dist",                                  /* לאן הקבצים המוכנים ילכו (לא קריטי כרגע) */
+    "rootDir": "./src"                                   /* איפה הקוד שלך יושב */
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
