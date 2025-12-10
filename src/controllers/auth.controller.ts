@@ -105,3 +105,21 @@ export const login = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Internal server error', error });
     }
 };
+
+export const logout = async (req: Request, res: Response) => {
+    const { token } = req.body;
+    if (!token) {
+        return res.status(400).json({ message: 'Refresh token is required' });
+    }
+
+    try {
+        await User.findOneAndUpdate(
+            { refreshTokens: token },
+            { $pull: { refreshTokens: token } }
+        );
+
+        res.json({ message: 'Logouted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Internal server error', error });
+    }
+};
