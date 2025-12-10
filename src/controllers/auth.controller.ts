@@ -3,9 +3,44 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model';
 
-/* ===============
-* REGISTER ROUTE
-*  =============== */ 
+const generateRefreshToken = (userId: string) => {
+    return jwt.sign({ userId }, process.env.REFRESH_TOKEN_SECRET || 'refresh_default_secret', { expiresIn: '7d' });
+};
+
+export const refreshToken = async (req: Request, res: Response) => {
+    const { token } = req.body;
+    if (!token) {
+        return res.status(401).json({ message: 'Refresh token is required' });
+    }
+
+    const refreshSecret = process.env.REFRESH_TOKEN_SECRET || 'refresh_default_secret';
+
+    jwt.verify(token, refreshSecret, async (err: any, userPayload: any) => {
+        if (err) {
+            return res.status(403).json({ message: 'Invalid refresh token' });
+        }
+
+        try {
+            const user = await User.findById(userPayload.userId);
+            if (!user || !user.refreshTokens || !user.refreshTokens.includes(token)) {
+                return res.status(403).json({ message: 'Refresh token not recognized' });
+            }
+
+            const accessSecret = process.env.JWT_SECRET || 'default_secret';
+            const newAccessToken = jwt.sign(
+                { userId: user._id, username: user.username }, 
+                accessSecret,
+                { expiresIn: '15m' }
+            );
+
+            res.json({ accessToken: newAccessToken });
+        } catch (error) {
+            res.status(500).json({ message: 'Internal server error', error });
+        }
+    });
+};
+        
+
 export const register = async (req: Request, res: Response) => {
     try {
         const { username, password } = req.body; // Destructure username and password from request body
@@ -35,9 +70,6 @@ export const register = async (req: Request, res: Response) => {
     }
 };
 
-/* ===============
-* LOGIN ROUTE
-*  =============== */ 
 export const login = async (req: Request, res: Response) => {
     try {
         const secret = process.env.JWT_SECRET || 'default_secret';
@@ -54,9 +86,21 @@ export const login = async (req: Request, res: Response) => {
             return;
         }
 
-        const token = jwt.sign({ userId: user._id, username: user.username }, secret, { expiresIn: '1h' });
+        const accessToken = jwt.sign(
+        { userId: user._id, username: user.username }, 
+        process.env.JWT_SECRET || 'default_secret', 
+        { expiresIn: '15m' } 
+        );
 
-        res.json({ message: 'Login successful', token });
+        const refreshToken = generateRefreshToken(user._id as unknown as string);
+        
+        if (!user.refreshTokens) {
+        user.refreshTokens = [];
+        }
+        user.refreshTokens.push(refreshToken);
+        await user.save();
+
+        res.json({ message: 'Login successful', accessToken, refreshToken });
     } catch (error) {
         res.status(500).json({ message: 'Internal server error', error });
     }
