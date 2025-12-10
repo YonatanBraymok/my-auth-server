@@ -1,7 +1,13 @@
-// Define a User (model) and export it for use in other parts of the application
-export interface User {
+import mongoose, { Schema, Document } from 'mongoose';
+
+export interface IUser extends Document {
     username: string;
     password: string;
 }
 
-export const users: User[] = []; // In-memory array to store users
+const UserSchema: Schema = new Schema({
+    username: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+});
+
+export default mongoose.model<IUser>('User', UserSchema);

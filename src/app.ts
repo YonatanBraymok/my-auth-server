@@ -1,10 +1,15 @@
+import dotenv from 'dotenv';
 import express from 'express';
+import { connectDB } from './config/db';
 import authRoutes from './routes/auth.routes';
 import { authenticateToken } from './middleware/auth.middleware';
 
+dotenv.config(); // Load environment variables from .env file
+connectDB(); // Connect to the database
+
 // Create an instance of an Express application
 const app = express(); // Instance of a server. express(); is a Factory Pattern constructor
-const PORT = 3000;
+const PORT = process.env.PORT; // Use the PORT from environment variables
 
 // Define the server can use JSON
 app.use(express.json()); // Middleware to parse JSON bodies

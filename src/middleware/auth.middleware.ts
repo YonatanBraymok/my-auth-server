@@ -1,8 +1,5 @@
-import express, { type Request, type Response, NextFunction } from 'express';
+import { type Request, type Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-
-// In a real app, we never store the tokens or passwords in plain text, this is just for demonstration purposes!
-const SECRET_KEY = "your_secret_key"; // Secret key for JWT signing
 
 /* ===============
 * AUTHENTICATION MIDDLEWARE
@@ -12,13 +9,15 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) { // If no token is provided, send unauthorized response
-        res.sendStatus(401).json({ message: 'Access denied. No token provided' });
+        res.status(401).json({ message: 'Access denied. No token provided' });
         return;
     }
 
+    const SECRET_KEY = process.env.JWT_SECRET || 'default_secret';
+
     jwt.verify(token, SECRET_KEY, (err, user) => { // Verify the token
         if (err) { // If token is invalid, send forbidden response
-            res.sendStatus(403).json({ message: 'Invalid token' });
+            res.status(403).json({ message: 'Invalid token' });
             return;
         }
 
