@@ -43,16 +43,16 @@ export const refreshToken = async (req: Request, res: Response) => {
 
 export const register = async (req: Request, res: Response) => {
     try {
-        const { username, password } = req.body; // Destructure username and password from request body
+        const { username, password, firstName, lastName } = req.body; // Destructure username and password from request body
 
-        if (!username || !password) {
-            res.status(400).send('Username and password are required');
+        if (!username || !password || !firstName || !lastName) {
+            res.status(400).send('All fields are required!');
             return;
         }
 
         const existingUser = await User.findOne({ username });
         if (existingUser) {
-            res.status(409).send('Username already exists');
+            res.status(409).send('User already exists');
             return;
         }
 
@@ -60,6 +60,8 @@ export const register = async (req: Request, res: Response) => {
 
         const newUser = await User.create({
             username,
+            firstName,
+            lastName,
             password: hashedPassword
         });
 
