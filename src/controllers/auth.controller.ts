@@ -39,7 +39,16 @@ export const refreshToken = async (req: Request, res: Response) => {
         }
     });
 };
-        
+
+// Password validation function
+const validatePassword = (password: string): string | null => {
+    if (password.length < 8) return "Password must be at least 8 characters long";
+    if (!/[A-Z]/.test(password)) return "Password must contain at least one uppercase letter";
+    if (!/[a-z]/.test(password)) return "Password must contain at least one lowercase letter";
+    if (!/[0-9]/.test(password)) return "Password must contain at least one digit";
+    if (!/[!@#$%^&*]/.test(password)) return "Password must contain at least one special character (!@#$%^&*)";
+    return null;
+}
 
 export const register = async (req: Request, res: Response) => {
     try {
@@ -47,6 +56,12 @@ export const register = async (req: Request, res: Response) => {
 
         if (!username || !password || !firstName || !lastName) {
             res.status(400).json({ message: 'All fields are required!' });
+            return;
+        }
+
+        const passwordError = validatePassword(password);
+        if (passwordError) {
+            res.status(400).json({ message: passwordError });
             return;
         }
 
