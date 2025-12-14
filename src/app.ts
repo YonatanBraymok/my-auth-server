@@ -1,3 +1,4 @@
+import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import { connectDB } from './config/db';
@@ -10,6 +11,8 @@ connectDB(); // Connect to the database
 // Create an instance of an Express application
 const app = express(); // Instance of a server. express(); is a Factory Pattern constructor
 const PORT = process.env.PORT; // Use the PORT from environment variables
+
+app.use(cors()); // Enable CORS for all routes
 
 // Define the server can use JSON
 app.use(express.json()); // Middleware to parse JSON bodies
