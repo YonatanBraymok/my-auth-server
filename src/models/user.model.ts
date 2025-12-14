@@ -6,6 +6,8 @@ export interface IUser extends Document {
     lastName: string;
     password: string;
     refreshTokens: string[];
+    country: string;
+    city: string;
 }
 
 const UserSchema: Schema = new Schema({
@@ -14,6 +16,8 @@ const UserSchema: Schema = new Schema({
     lastName: { type: String, required: true },
     password: { type: String, required: true },
     refreshTokens: { type: [String], default: [] },
+    country: { type: String, required: true },
+    city: { type: String, required: true },
 });
 
 export default mongoose.model<IUser>('User', UserSchema);

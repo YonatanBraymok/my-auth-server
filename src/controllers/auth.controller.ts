@@ -52,9 +52,9 @@ const validatePassword = (password: string): string | null => {
 
 export const register = async (req: Request, res: Response) => {
     try {
-        const { username, password, firstName, lastName } = req.body; // Destructure username and password from request body
+        const { username, password, firstName, lastName, country, city } = req.body; // Destructure username and password from request body
 
-        if (!username || !password || !firstName || !lastName) {
+        if (!username || !password || !firstName || !lastName || !country || !city) {
             res.status(400).json({ message: 'All fields are required!' });
             return;
         }
@@ -77,7 +77,9 @@ export const register = async (req: Request, res: Response) => {
             username,
             firstName,
             lastName,
-            password: hashedPassword
+            country,
+            city,
+            password: hashedPassword,
         });
 
         res.status(201).json({ message: 'User registered successfully', userId: newUser._id });
