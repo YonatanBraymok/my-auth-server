@@ -46,13 +46,13 @@ export const register = async (req: Request, res: Response) => {
         const { username, password, firstName, lastName } = req.body; // Destructure username and password from request body
 
         if (!username || !password || !firstName || !lastName) {
-            res.status(400).send('All fields are required!');
+            res.status(400).json({ message: 'All fields are required!' });
             return;
         }
 
         const existingUser = await User.findOne({ username });
         if (existingUser) {
-            res.status(409).send('User already exists');
+            res.status(409).json({ message: 'User already exists' });
             return;
         }
 
@@ -79,12 +79,12 @@ export const login = async (req: Request, res: Response) => {
 
          const user = await User.findOne({ username });
         if (!user) {
-            res.status(401).send('Invalid username');
+            res.status(401).json({ message: 'User not found' });
             return;
         }
         const passwordMatch = await bcrypt.compare(password, user.password);
         if (!passwordMatch) {
-            res.status(401).send('Invalid password');
+            res.status(401).json({ message: 'Wrong password' });
             return;
         }
 
