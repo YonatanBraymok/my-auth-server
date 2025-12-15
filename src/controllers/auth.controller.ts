@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model';
+import crypto from 'crypto';
+import { sendVerificationEmail } from '../services/email.service';
 
 const generateRefreshToken = (userId: string) => {
     return jwt.sign({ userId }, process.env.REFRESH_TOKEN_SECRET || 'refresh_default_secret', { expiresIn: '7d' });
@@ -28,7 +30,7 @@ export const refreshToken = async (req: Request, res: Response) => {
 
             const accessSecret = process.env.JWT_SECRET || 'default_secret';
             const newAccessToken = jwt.sign(
-                { userId: user._id, username: user.username }, 
+                { userId: user._id, email: user.email }, 
                 accessSecret,
                 { expiresIn: '15m' }
             );
@@ -52,9 +54,9 @@ const validatePassword = (password: string): string | null => {
 
 export const register = async (req: Request, res: Response) => {
     try {
-        const { username, password, firstName, lastName, country, city } = req.body; // Destructure username and password from request body
+        const { email, password, firstName, lastName, country, city } = req.body; // Destructure username and password from request body
 
-        if (!username || !password || !firstName || !lastName || !country || !city) {
+        if (!email || !password || !firstName || !lastName || !country || !city) {
             res.status(400).json({ message: 'All fields are required!' });
             return;
         }
@@ -65,24 +67,33 @@ export const register = async (req: Request, res: Response) => {
             return;
         }
 
-        const existingUser = await User.findOne({ username });
+        const existingUser = await User.findOne({ email });
         if (existingUser) {
             res.status(409).json({ message: 'User already exists' });
             return;
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
+        const verificationToken = crypto.randomBytes(32).toString('hex'); // For Email Verification.
 
         const newUser = await User.create({
-            username,
+            email,
             firstName,
             lastName,
             country,
             city,
             password: hashedPassword,
+            verificationToken,
+            isVerified: false
         });
 
-        res.status(201).json({ message: 'User registered successfully', userId: newUser._id });
+        try {
+            await sendVerificationEmail(email, verificationToken);
+        } catch (error) {
+            console.error("Email send failed:", error);
+        }
+
+        res.status(201).json({ message: 'User registered successfully. Please check your email to verify your account.', userId: newUser._id });
     } catch (error) {
         console.error('Error during registration:', error);
         res.status(500).json({ message: 'Internal server error', error });
@@ -92,9 +103,9 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
     try {
         const secret = process.env.JWT_SECRET || 'default_secret';
-        const { username, password } = req.body;
+        const { email, password } = req.body;
 
-         const user = await User.findOne({ username });
+        const user = await User.findOne({ email });
         if (!user) {
             res.status(401).json({ message: 'User not found' });
             return;
@@ -105,8 +116,13 @@ export const login = async (req: Request, res: Response) => {
             return;
         }
 
+        if (!user.isVerified) {
+            res.status(403).json({ message: 'You must verify your email first!.'});
+            return;
+        }
+
         const accessToken = jwt.sign(
-        { userId: user._id, username: user.username }, 
+        { userId: user._id, email: user.email }, 
         process.env.JWT_SECRET || 'default_secret', 
         { expiresIn: '15m' } 
         );
@@ -140,5 +156,32 @@ export const logout = async (req: Request, res: Response) => {
         res.json({ message: 'Logouted successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Internal server error', error });
+    }
+};
+
+export const verifyEmail = async (req: Request, res: Response) => {
+    const { token } = req.body;
+
+    if (!token) {
+        res.status(400).json({ message: 'Token is required' });
+        return;
+    }
+
+    try {
+        const user = await User.findOne({ verificationToken: token });
+
+        if (!user) {
+            res.status(400).json({ message: 'Invalid or expired token' });
+            return;
+        }
+
+        user.isVerified = true;
+        user.verificationToken = undefined as any;
+        await user.save();
+
+        res.status(200).json({ message: 'Email verified successfully!' });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
     }
 };

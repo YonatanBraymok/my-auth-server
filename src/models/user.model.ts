@@ -1,23 +1,27 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IUser extends Document {
-    username: string;
+    email: string;
     firstName: string;
     lastName: string;
     password: string;
     refreshTokens: string[];
     country: string;
     city: string;
+    isVerified: boolean;
+    verificationToken: string;
 }
 
 const UserSchema: Schema = new Schema({
-    username: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true },
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
     password: { type: String, required: true },
     refreshTokens: { type: [String], default: [] },
     country: { type: String, required: true },
     city: { type: String, required: true },
+    isVerified: { type: Boolean, default: false },
+    verificationToken: { type: String },
 });
 
 export default mongoose.model<IUser>('User', UserSchema);
