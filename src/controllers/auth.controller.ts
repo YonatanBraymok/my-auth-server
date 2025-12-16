@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model';
 import crypto from 'crypto';
-import { sendVerificationEmail } from '../services/email.service';
+import { sendVerificationEmail, sendPasswordResetEmail } from '../services/email.service';
 
 const generateRefreshToken = (userId: string) => {
     return jwt.sign({ userId }, process.env.REFRESH_TOKEN_SECRET || 'refresh_default_secret', { expiresIn: '7d' });
@@ -181,6 +181,72 @@ export const verifyEmail = async (req: Request, res: Response) => {
 
         res.status(200).json({ message: 'Email verified successfully!' });
 
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+
+export const requestPasswordReset = async (req: Request, res: Response) => {
+    const { email } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            // Apparently Gemini says this is a security trick to prevent account breach...
+            // Meaning we say we sent an email to a non-existent account, even though we didnt.
+            res.status(200).json({ message: 'Password reset request sent to this email!.' });
+            return;
+        }
+
+        const resetToken = crypto.randomBytes(32).toString('hex');
+
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpires = new Date(Date.now() + 3600000) // 1 hour.
+
+        await user.save();
+        await sendPasswordResetEmail(user.email, resetToken);
+
+        res.status(200).json({ message: 'Password reset request sent to this email!.' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+    const { token, newPassword } = req.body;
+
+    try {
+        const user = await User.findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            res.status(400).json({ message: 'Invalid or expired token' });
+            return;
+        }
+
+        const passwordError = validatePassword(newPassword);
+        if (passwordError) {
+            res.status(400).json({ message: passwordError });
+            return;
+        }
+
+        const isSamePassword = await bcrypt.compare(newPassword, user.password);
+        if (isSamePassword) {
+            res.status(400).json({ message: 'New password cannot be the same as the old password' });
+            return;
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+
+        await user.save();
+
+        res.status(200).json({ message: 'Password has been reset successfully!' });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
     }
