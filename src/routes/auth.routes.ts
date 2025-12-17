@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { refreshToken, register, login, logout, verifyEmail, requestPasswordReset, resetPassword } from '../controllers/auth.controller';
+import { refreshToken, register, login, logout, verifyEmail, requestPasswordReset, resetPassword, getProfile, updateProfile } from '../controllers/auth.controller';
+import { authenticateToken } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -11,5 +12,9 @@ router.post('/logout', logout);
 router.post('/verify', verifyEmail);
 router.post('/forgot-password', requestPasswordReset);
 router.post('/reset-password', resetPassword);
+
+// These routes demand an authentication token.
+router.get('/me', authenticateToken, getProfile);
+router.put('/profile', authenticateToken, updateProfile);
 
 export default router;

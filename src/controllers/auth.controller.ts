@@ -251,3 +251,70 @@ export const resetPassword = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
+export const getProfile = async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user.userId; // userId comes from middleware.
+        const user = await User.findById(userId).select('-password -refreshToken -verificationToken -resetPasswordToken');
+
+        if (!user) {
+            res.status(404).json({ message: 'User not found' });
+            return;
+        }
+
+        res.status(200).json(user);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+
+/*export const updateProfile = async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user?.userId;
+        const { firstName, lastName, country, city } = req.body;
+
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { firstName, lastName, country, city },
+            { new: true, runValidators: true }
+        ).select('-password');
+
+        res.status(200).json(updatedUser);
+    } catch (error) {
+        console.error("UpdateProfile Error:", error);
+        res.status(500).json({ message: 'Server error', error });
+    }
+};*/
+
+export const updateProfile = async (req: Request, res: Response) => {
+    console.log("--- Update Profile Request ---");
+    console.log("1. User object:", (req as any).user); // נראה אם המידלוור עבד
+    console.log("2. Body:", req.body); // נראה מה הגיע מהלקוח
+
+    try {
+        const userObj = (req as any).user;
+        
+        // בדיקת בטיחות: אם המידלוור כשל
+        if (!userObj || !userObj.userId) {
+            console.error("Critical Error: No user ID found in request");
+            res.status(401).json({ message: "User not authenticated properly" });
+            return;
+        }
+
+        const userId = userObj.userId;
+        const { firstName, lastName, country, city } = req.body;
+
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { firstName, lastName, country, city },
+            { new: true, runValidators: true }
+        ).select('-password');
+        
+        console.log("3. Updated User:", updatedUser); // נראה אם המונגו הצליח
+
+        res.status(200).json(updatedUser);
+    } catch (error) {
+        console.error("4. ERROR in updateProfile:", error); // זה ידפיס את השגיאה האמיתית!
+        res.status(500).json({ message: 'Server error', error });
+    }
+};

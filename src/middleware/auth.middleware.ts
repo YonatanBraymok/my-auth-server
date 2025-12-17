@@ -1,9 +1,6 @@
 import { type Request, type Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-/* ===============
-* AUTHENTICATION MIDDLEWARE
-*  =============== */
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers['authorization']; // Get the Authorization header
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
@@ -22,6 +19,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
         }
 
         // Token is valid, proceed to the next middleware/route handler
+        (req as any).user = user;
         next();
     });
 };
