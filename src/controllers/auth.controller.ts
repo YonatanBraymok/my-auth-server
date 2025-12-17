@@ -268,7 +268,7 @@ export const getProfile = async (req: Request, res: Response) => {
     }
 };
 
-/*export const updateProfile = async (req: Request, res: Response) => {
+export const updateProfile = async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user?.userId;
         const { firstName, lastName, country, city } = req.body;
@@ -284,37 +284,50 @@ export const getProfile = async (req: Request, res: Response) => {
         console.error("UpdateProfile Error:", error);
         res.status(500).json({ message: 'Server error', error });
     }
-};*/
+};
 
-export const updateProfile = async (req: Request, res: Response) => {
-    console.log("--- Update Profile Request ---");
-    console.log("1. User object:", (req as any).user); // נראה אם המידלוור עבד
-    console.log("2. Body:", req.body); // נראה מה הגיע מהלקוח
-
+export const changePassword = async (req: Request, res: Response) => {
     try {
-        const userObj = (req as any).user;
-        
-        // בדיקת בטיחות: אם המידלוור כשל
-        if (!userObj || !userObj.userId) {
-            console.error("Critical Error: No user ID found in request");
-            res.status(401).json({ message: "User not authenticated properly" });
+        const userId = (req as any).user?.userId;
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            res.status(400).json({ message: 'All fields are required' });
             return;
         }
 
-        const userId = userObj.userId;
-        const { firstName, lastName, country, city } = req.body;
+        const user = await User.findById(userId);
+        if (!user) {
+            res.status(404).json({ message: 'User not found' });
+            return;
+        }
 
-        const updatedUser = await User.findByIdAndUpdate(
-            userId,
-            { firstName, lastName, country, city },
-            { new: true, runValidators: true }
-        ).select('-password');
-        
-        console.log("3. Updated User:", updatedUser); // נראה אם המונגו הצליח
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            res.status(400).json({ message: 'Incorrect current password' });
+            return;
+        }
 
-        res.status(200).json(updatedUser);
+        const passwordError = validatePassword(newPassword);
+        if (passwordError) {
+             res.status(400).json({ message: passwordError });
+             return;
+        }
+
+        const isSame = await bcrypt.compare(newPassword, user.password);
+        if (isSame) {
+            res.status(400).json({ message: 'New password cannot be the same as old password' });
+            return;
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+        await user.save();
+
+        res.status(200).json({ message: 'Password changed successfully' });
+
     } catch (error) {
-        console.error("4. ERROR in updateProfile:", error); // זה ידפיס את השגיאה האמיתית!
-        res.status(500).json({ message: 'Server error', error });
+        console.error("ChangePassword Error:", error);
+        res.status(500).json({ message: 'Server error' });
     }
 };
