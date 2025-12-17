@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { refreshToken, register, login, logout, verifyEmail, requestPasswordReset, resetPassword, getProfile, updateProfile, changePassword } from '../controllers/auth.controller';
+import { refreshToken, register, login, logout, verifyEmail, requestPasswordReset, resetPassword, getProfile, updateProfile, changePassword, deleteAccount } from '../controllers/auth.controller';
 import { authenticateToken } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -17,5 +17,6 @@ router.post('/reset-password', resetPassword);
 router.get('/me', authenticateToken, getProfile);
 router.put('/profile', authenticateToken, updateProfile);
 router.post('/change-password', authenticateToken, changePassword);
+router.delete('/profile', authenticateToken, deleteAccount);
 
 export default router;

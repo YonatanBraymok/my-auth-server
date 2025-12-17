@@ -331,3 +331,21 @@ export const changePassword = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+export const deleteAccount = async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user?.userId;
+
+        if(!userId) {
+            res.status(400).json({ message: 'User ID missing' });
+            return;
+        }
+
+        await User.findByIdAndDelete(userId);
+
+        res.status(200).json({ message: 'Account deleted successfully' });
+    } catch (error) {
+        console.error("DeleteAccount Error: ", error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
