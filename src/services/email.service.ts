@@ -1,50 +1,61 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
+import dotenv from 'dotenv';
 
-// Configure the email transporter (will be changed to use real SMTP in production)
-const transporter = nodemailer.createTransport({
-    host: 'smtp.ethereal.email',
-    port: 587,
-    auth: {
-        user: 'deion.greenfelder@ethereal.email',
-        pass: 'k6RwQVS7dPnQzZDTgh',
-    },
-});
+dotenv.config;
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const fromEmail = process.env.FROM_EMAIL || 'onboarding@resend.dev';
 
 export const sendVerificationEmail = async (toEmail: string, verificationToken: string) => {
-    // Create verification link
-    const link = `http://localhost:5173/verify?token=${verificationToken}`;
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const link = `${clientUrl}/verify?token=${verificationToken}`;
 
-    const info = await transporter.sendMail({
-        from: '"My Auth App" <no-reply@auth-app.com>',
-        to: toEmail,
-        subject: "Verify your email",
-        html: `
+    try {
+    const { data,error } = await resend.emails.send({
+      from: fromEmail, 
+      to: toEmail,
+      subject: 'Verify your email',
+      html: `
         <h3>Welcome!</h3>
         <p>Please click the link below to verify your email address:</p>
         <a href="${link}">Verify Email</a>
-        `,
+      `
     });
 
-    console.log('Verification email sent: %s', info.messageId);
-    console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+    if (error) {
+        console.error("Resend error: ", error);
+        return;
+    }
+
+  } catch (err) {
+    console.error("Unexpected Error:", err);
+  }
 };
 
 export const sendPasswordResetEmail = async (toEmail: string, resetToken: string) => {
-    const link = `http://localhost:5173/reset-password?token=${resetToken}`;
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const link = `${clientUrl}/reset-password?token=${resetToken}`;
 
-    const info = await transporter.sendMail({
-        from: '"My Auth App" <no-reply@auth-app.com>',
-        to: toEmail,
-        subject: "Password Reset Request",
-        html: `
+  try {
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
+      to: toEmail,
+      subject: 'Password Reset Request',
+      html: `
         <h3>Password Reset</h3>
-        <p>You requested to reset your password.</p>
         <p>Click the link below to set a new password:</p>
         <a href="${link}">Reset Password</a>
         <p>This link will expire in 1 hour.</p>
-        `,
+      `
     });
 
-    console.log("Reset Email sent: %s", info.messageId);
-    console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
-}
+    if (error) {
+        console.error("Resend error: ", error);
+        return;
+    }
+
+    console.log("Reset email sent successfully. ID:", data?.id);
+  } catch (err) {
+    console.error("Unexpected error:", err);
+  }
+};

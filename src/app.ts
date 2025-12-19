@@ -1,11 +1,11 @@
-import cors from 'cors';
 import dotenv from 'dotenv';
+dotenv.config(); // Load environment variables from .env file
+import cors from 'cors';
 import express from 'express';
 import { connectDB } from './config/db';
 import authRoutes from './routes/auth.routes';
 import { authenticateToken } from './middleware/auth.middleware';
 
-dotenv.config(); // Load environment variables from .env file
 connectDB(); // Connect to the database
 
 // Create an instance of an Express application
