@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/user.model';
 import crypto from 'crypto';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../services/email.service';
+import { Blacklist } from '../models/Blacklist.model';
 
 const generateRefreshToken = (userId: string) => {
     return jwt.sign({ userId }, process.env.REFRESH_TOKEN_SECRET || 'refresh_default_secret', { expiresIn: '7d' });
@@ -142,20 +143,18 @@ export const login = async (req: Request, res: Response) => {
 };
 
 export const logout = async (req: Request, res: Response) => {
-    const { token } = req.body;
-    if (!token) {
-        return res.status(400).json({ message: 'Refresh token is required' });
-    }
-
     try {
-        await User.findOneAndUpdate(
-            { refreshTokens: token },
-            { $pull: { refreshTokens: token } }
-        );
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
 
-        res.json({ message: 'Logouted successfully' });
+        if (!token) return res.sendStatus(204);
+
+        // Add current accesstoken to the Blacklist: middleware will handle these tokens accordingly.
+        await Blacklist.create({ token });
+
+        res.status(200).json({ mesage: 'Logged out successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Internal server error', error });
+        res.status(500).json({ message: "Server error during logout" });
     }
 };
 
